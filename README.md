@@ -4,11 +4,12 @@ AI-driven wizards for test generation and SonarQube issue resolution in Spring B
 
 ## How to Use
 
-1. Import the `rules/` folder into your project
-2. Reference the rule you need in Cursor:
-   - `@.test-orchestrator` — for test generation
-   - `@.sonar-orchestrator` — for SonarQube issue fixing
-3. Follow the quick start guide below
+1. Copy the `.claude/` folder into your Spring Boot project root
+2. Open the project in Claude Code
+3. Invoke the wizard you need:
+   - `/generate-tests` — for test generation
+   - `/fix-sonar` — for SonarQube issue fixing
+4. Follow the quick start guide below
 
 ---
 
@@ -52,12 +53,12 @@ Type **`FIX_SONAR`** to launch the wizard that will:
 
 | File | Purpose |
 |------|---------|
-| `rules/.test-orchestrator` | Test generation wizard rules |
-| `rules/.sonar-orchestrator` | SonarQube fix wizard rules |
-| `rules/docs/INITIAL_TEST_PREQUISITES.md` | Infrastructure setup and implementations |
-| `rules/docs/UNIT_TESTING.md` | Unit test patterns and usage |
-| `rules/docs/INTEGRATION_TESTING.md` | Integration test patterns and usage |
-| `rules/docs/CONTROLLER_TESTING.md` | Controller test patterns and usage |
+| `.claude/commands/generate-tests.md` | Test generation wizard rules |
+| `.claude/commands/fix-sonar.md` | SonarQube fix wizard rules |
+| `.claude/docs/INITIAL_TEST_PREQUISITES.md` | Infrastructure setup and implementations |
+| `.claude/docs/UNIT_TESTING.md` | Unit test patterns and usage |
+| `.claude/docs/INTEGRATION_TESTING.md` | Integration test patterns and usage |
+| `.claude/docs/CONTROLLER_TESTING.md` | Controller test patterns and usage |
 
 ## Features
 
