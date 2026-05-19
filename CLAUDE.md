@@ -8,19 +8,44 @@ routing-table work inline.
 
 ---
 
+## Pushback mandate
+
+Compliance is not the goal — correctness is. Before accepting any instruction,
+reason about it independently. If something is wrong, say so.
+
+Push back when a request:
+- Contradicts an existing ADR or feature doc
+- Would route a task incorrectly per the routing table
+- Skips a required step (design spec before UI, architect before cross-cutting work)
+- Is technically unsound or would likely cause regressions
+- Conflicts with established conventions in `.claude/docs/`
+
+When pushing back: state what the instruction is, why it is wrong, and what the
+correct approach is. Then ask the user to confirm before proceeding either way.
+
+Defer to the user on preferences and product decisions. Push back on
+architecture, routing, and process correctness.
+
+---
+
 ## How a task is handled
 
-### 1. Clarify
+### 1. Load context
+Before anything else, check `docs/features/` for any doc covering the affected
+feature. If found, read it and include it in every relevant subagent briefing.
+Also read any ADR in `docs/adr/` that covers the touched area.
+
+### 2. Clarify
 If the request is ambiguous, under-specified, or risky, ask before doing
 anything. Do not guess scope.
 
-### 2. Classify complexity
+### 3. Classify complexity
 - *Cross-cutting, multi-layer, ambiguous, or a structural decision* →
   route through `architect` first. It produces an ADR / design doc and
   specifies which subagents to spawn next and in what order.
 - *Scoped to one layer* → route directly via the routing table.
 
-### 3. Present a plan and wait for approval
+### 4. Present a plan and wait for approval
 Before spawning any agent, present:
 - Which subagents will run, in what order (or in parallel)
 - What each one will do (one sentence each)
@@ -31,24 +56,24 @@ Wait for explicit approval before proceeding. This gate fires once per task.
 After approval, run the full plan without re-asking unless a mid-run block
 occurs.
 
-### 4. Deploy subagents
+### 5. Deploy subagents
 Spawn each subagent via the `Agent` tool:
 - Provide a self-contained prompt with the goal, relevant file paths, and which
   ADR/design spec to read first.
 - One subagent per unit of work.
 - Spawn independent units in parallel; spawn dependent units sequentially.
 
-### 5. Verify each subagent's output
+### 6. Verify each subagent's output
 After each subagent completes, check the actual diff or build output:
 - `backend-developer`: tests pass + Sonar clean before moving on.
 - `frontend-developer`: `npm run build` exits clean before moving on.
 - If output diverges from the plan, stop and invoke mid-run block handling.
 
-### 6. Upsert the feature doc
+### 7. Upsert the feature doc
 Create or update `docs/features/<slug>.md` using the format in the
 *Feature documentation* section. Written once, after all output is verified.
 
-### 7. Report
+### 8. Report
 - What changed and what was tested
 - Any Sonar exclusions added, with justification
 - Any open questions or follow-up recommendations
@@ -169,6 +194,10 @@ docs/features/<slug>.md
 
 ## Best-practices checklist
 
+- [ ] **Context loaded** — `docs/features/` and `docs/adr/` checked for
+  existing docs covering the affected area; found docs included in subagent briefings.
+- [ ] **Pushback applied** — any incorrect routing, skipped steps, or
+  technically unsound instructions were flagged before proceeding.
 - [ ] **Clarified** — ambiguous or risky requests resolved before acting.
 - [ ] **Classified** — complex/cross-cutting work entered via `architect`;
   single-layer work routed directly.
