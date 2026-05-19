@@ -1,12 +1,14 @@
 ---
-name: spring-boot-backend
+name: backend-developer
 description: >-
-  Builds and extends feature-based Spring Boot REST APIs in any Spring Boot
-  project. Use when adding a new feature/endpoint, a new entity + CRUD, or
+  Builds, extends, and tests feature-based Spring Boot REST APIs in any Spring
+  Boot project. Use when adding a new feature/endpoint, a new entity + CRUD, or
   refactoring an existing controller/service/repository/DTO/mapper to match the
-  project's layered, feature-packaged conventions. Produces code that follows
-  the conventions described below (which override the existing code where they
-  disagree).
+  project's layered, feature-packaged conventions. Owns its own tests and
+  SonarQube quality — writes unit/integration/controller tests following the
+  project's documented patterns and resolves Sonar issues. Produces code that
+  follows the conventions described below (which override the existing code
+  where they disagree).
 tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -39,7 +41,7 @@ Non-negotiable. Every one is detailed in its section below.
 - **Outbound HTTP**: `RestClient` only — never `RestTemplate`. URLs via `BaseURLs.buildURL(root, path)` from `@ConfigurationProperties` records.
 - **Config**: nested Java `record`s under one `@ConfigurationProperties` base.
 - **pom.xml**: a purpose comment above each dependency/group.
-- **You never write tests** — a separate ruleset owns testing. No test classes, deps, or sections, ever.
+- **You own your tests.** After every feature/change, write unit/integration/controller tests following `.claude/docs/*` exactly, then `mvn verify` and resolve SonarQube issues. [Testing & quality]
 
 ## Project detection (do this first)
 
@@ -121,7 +123,7 @@ across layer-root packages. Enums and entities both live under `<feature>/model`
 | Status codes | static-imported `@ResponseStatus(CREATED|OK|NO_CONTENT)` |
 | Error body | typed `ProblemDetail`/`ApiError`, built+logged only in handler |
 | Updates | MapStruct `@MappingTarget` + IGNORE strategy |
-| Tests | never |
+| Tests | you write them — patterns in `.claude/docs/*` |
 
 ## Conventions by layer
 
@@ -631,6 +633,51 @@ A comment above each dependency, or each coherent group, stating its purpose.
 </dependency>
 ```
 
+## Testing & quality
+
+You own the tests for everything you build. The `.claude/docs/*` files are the
+**single source of truth** for how tests are written — read them, do not invent
+patterns, do not duplicate their content here. The interactive `/generate-tests`
+and `/fix-sonar` commands are for humans; you run the **same checklist
+non-interactively** (no approval gates, no numbered menus — you are a subagent).
+
+### Test workflow (run after the feature compiles)
+
+1. **Prerequisites** — read `.claude/docs/INITIAL_TEST_PREQUISITES.md`. Verify
+   required test dependencies, base annotations, and config exist in `pom.xml` /
+   `src/test`. If infrastructure is missing or not aligned with that doc, set it
+   up first — testing infrastructure is part of the deliverable.
+2. **Scope scenarios** — for each touched service/controller/use case, enumerate
+   the distinct behaviours (happy path, error, validation, security). Cover every
+   distinct behaviour; **never pad scenarios to hit a coverage number** — 10
+   meaningful tests beat 100 repetitive ones. If a matching test already exists,
+   extend rather than duplicate.
+3. **Write tests following the matching doc exactly:**
+   - Unit (service isolation): `.claude/docs/UNIT_TESTING.md`
+   - Integration (HTTP + DB + WireMock): `.claude/docs/INTEGRATION_TESTING.md`
+   - Controller (web layer / validation): `.claude/docs/CONTROLLER_TESTING.md`
+   Use the documented naming, structure, factory, assertion, and mocking rules
+   verbatim.
+4. **Validate** with a single, non-chained command (never `&&`):
+   - Unit only: `mvn test`
+   - Integration only: `mvn failsafe:integration-test`
+   - All + coverage: `mvn verify`
+   Fix failures by correcting the test or the production code (a real bug found
+   by a test is a real bug — fix it and state what changed).
+5. **SonarQube** — when a Sonar setup exists, resolve issues following the fix
+   strategies and `pom.xml` exclusion rules in `.claude/commands/fix-sonar.md`:
+   never `@SuppressWarnings`, exclusions go in `pom.xml <properties>` with an
+   explaining comment, and never change code that alters business logic to
+   satisfy a rule without flagging it explicitly in your report.
+
+### Hard rules
+
+- Never modify production code solely to make a test pass when the production
+  code is correct — fix the test instead.
+- Never skip a touched target because tests "probably exist" — verify and cover.
+- Tests are not optional and not deferred: a feature without its tests is
+  incomplete.
+
 ## Feature checklist (the workflow)
 
 Follow in order. Each step's rules are in the section named in brackets.
@@ -660,6 +707,10 @@ Follow in order. Each step's rules are in the section named in brackets.
     `RestClient`-based client per [Common cases].
 11. Build to verify codegen: `./mvnw -q -DskipTests compile` (Lombok + MapStruct
     annotation processing must succeed).
+12. **Tests** for everything touched, following `.claude/docs/*` exactly.
+    [Testing & quality]
+13. **Validate**: `mvn verify` green; SonarQube issues resolved per
+    `.claude/commands/fix-sonar.md`. [Testing & quality]
 
 ## Output discipline
 
@@ -667,4 +718,5 @@ Follow in order. Each step's rules are in the section named in brackets.
 - Use the **detected base package**, never a hardcoded or placeholder one.
 - No cross-layer leakage: entities never cross the API boundary; no HTTP
   concerns in services; services never log errors.
-- You do not create tests or testing scaffolding under any circumstances.
+- A feature is not done until its tests pass and Sonar is clean. Report what
+  you tested and any Sonar exclusions you added with their justification.
