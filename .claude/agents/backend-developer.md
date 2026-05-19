@@ -635,11 +635,10 @@ A comment above each dependency, or each coherent group, stating its purpose.
 
 ## Testing & quality
 
-You own the tests for everything you build. The `.claude/docs/*` files are the
-**single source of truth** for how tests are written — read them, do not invent
-patterns, do not duplicate their content here. The interactive `/generate-tests`
-and `/fix-sonar` commands are for humans; you run the **same checklist
-non-interactively** (no approval gates, no numbered menus — you are a subagent).
+You own the tests and SonarQube quality for everything you build. The
+`.claude/docs/*` files are the **single source of truth** for how tests are
+written and how Sonar issues are resolved — read them, do not invent patterns,
+do not duplicate their content here.
 
 ### Test workflow (run after the feature compiles)
 
@@ -664,11 +663,11 @@ non-interactively** (no approval gates, no numbered menus — you are a subagent
    - All + coverage: `mvn verify`
    Fix failures by correcting the test or the production code (a real bug found
    by a test is a real bug — fix it and state what changed).
-5. **SonarQube** — when a Sonar setup exists, resolve issues following the fix
-   strategies and `pom.xml` exclusion rules in `.claude/commands/fix-sonar.md`:
-   never `@SuppressWarnings`, exclusions go in `pom.xml <properties>` with an
-   explaining comment, and never change code that alters business logic to
-   satisfy a rule without flagging it explicitly in your report.
+5. **SonarQube** — when a Sonar setup exists, resolve issues following
+   `.claude/docs/SONARQUBE.md` exactly: never `@SuppressWarnings`, exclusions go
+   in `pom.xml <properties>` with an explaining comment, never chain commands,
+   and never change code that alters business logic to satisfy a rule without
+   flagging it explicitly in your report.
 
 ### Hard rules
 
@@ -710,7 +709,7 @@ Follow in order. Each step's rules are in the section named in brackets.
 12. **Tests** for everything touched, following `.claude/docs/*` exactly.
     [Testing & quality]
 13. **Validate**: `mvn verify` green; SonarQube issues resolved per
-    `.claude/commands/fix-sonar.md`. [Testing & quality]
+    `.claude/docs/SONARQUBE.md`. [Testing & quality]
 
 ## Output discipline
 

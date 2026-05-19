@@ -1,13 +1,11 @@
 # cc-agents
 
-**cc** = **Claude Code**. `cc-agents` is a portable `.claude/` toolkit of
-specialized Claude Code subagents, interactive wizards, and pattern docs for
-building **full-stack Spring Boot + React** projects with consistent
-architecture, testing, and code quality.
+`cc-agents` is a portable `.claude/` toolkit of specialized Claude Code
+subagents and pattern docs for building **full-stack Spring Boot + React**
+projects with consistent architecture, testing, and code quality.
 
-> This started as test-generation wizards. It is now a multi-agent full-stack
-> dev suite — backend, frontend, UX/UI design, and architecture — with the
-> original interactive testing/quality wizards still included.
+> A fully agentic multi-agent dev suite — backend, frontend, UX/UI design, and
+> architecture. Work is done by deploying subagents, not interactive commands.
 
 ## What it is
 
@@ -17,10 +15,8 @@ Drop `cc-agents` into any Spring Boot (and/or React) project and you get:
   conventions.
 - **An orchestrator (`CLAUDE.md`)** that routes your task to the right subagent
   and enforces a consistent task-handling flow.
-- **Two interactive wizards** for human-driven test generation and SonarQube
-  resolution.
 - **Pattern docs** that are the single source of truth for how tests are
-  written.
+  written and how SonarQube issues are resolved.
 
 ## Subagents
 
@@ -34,17 +30,7 @@ Drop `cc-agents` into any Spring Boot (and/or React) project and you get:
 UI work chains: `ux-ui-designer` writes the spec → `frontend-developer`
 implements it. Complex/cross-cutting work enters via `architect` first.
 
-## Interactive wizards
-
-Human-driven, approval-gated. Subagents follow the same checklists
-non-interactively.
-
-- **`/generate-tests`** — verify test infrastructure, pick a target, approve a
-  scenario table, generate unit/integration/controller tests, validate.
-- **`/fix-sonar`** — verify Sonar config, run analysis, review issues, fix or
-  ignore (via `pom.xml`, never `@SuppressWarnings`), re-analyze.
-
-## Testing docs (single source of truth)
+## Pattern docs (single source of truth)
 
 | File | Purpose |
 |---|---|
@@ -52,16 +38,17 @@ non-interactively.
 | `.claude/docs/UNIT_TESTING.md` | Service-isolation unit-test patterns |
 | `.claude/docs/INTEGRATION_TESTING.md` | HTTP + DB + WireMock integration patterns |
 | `.claude/docs/CONTROLLER_TESTING.md` | Web-layer validation-test patterns |
+| `.claude/docs/SONARQUBE.md` | SonarQube resolution standards |
 
-Both the wizards and `backend-developer` read these. They are never duplicated
-into agent or command files.
+`backend-developer` reads these directly. They are never duplicated into agent
+files.
 
 ## How to use
 
 1. Copy the `.claude/` folder **and** `CLAUDE.md` into your project root.
 2. Open the project in Claude Code.
-3. Describe your task normally — `CLAUDE.md` routes it to the right subagent.
-   Or invoke a subagent explicitly, or run `/generate-tests` / `/fix-sonar`.
+3. Describe your task normally — `CLAUDE.md` routes it to the right subagent,
+   or invoke a subagent explicitly.
 4. For new UI: ask for a design first (`ux-ui-designer`), then implementation
    (`frontend-developer`).
 5. For anything cross-cutting: start with `architect`.
@@ -77,14 +64,12 @@ README.md                         this file
 │   ├── backend-developer.md
 │   ├── frontend-developer.md
 │   └── ux-ui-designer.md
-├── commands/
-│   ├── generate-tests.md
-│   └── fix-sonar.md
 └── docs/
     ├── INITIAL_TEST_PREQUISITES.md
     ├── UNIT_TESTING.md
     ├── INTEGRATION_TESTING.md
-    └── CONTROLLER_TESTING.md
+    ├── CONTROLLER_TESTING.md
+    └── SONARQUBE.md
 ```
 
 ## Renaming the repository
