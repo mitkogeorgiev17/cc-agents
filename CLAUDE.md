@@ -1,10 +1,10 @@
 # cc-agents — orchestrator
 
-`cc-agents` (**cc** = Claude Code) is a portable `.claude/` toolkit: a set of
-specialized Claude Code subagents plus interactive wizards and pattern docs for
-building full-stack Spring Boot + React projects with consistent architecture,
-testing, and quality. Copy `.claude/` and this `CLAUDE.md` into a target
-project.
+`cc-agents` is a portable `.claude/` toolkit: a set of specialized Claude Code
+subagents plus pattern docs for building full-stack Spring Boot + React
+projects with consistent architecture, testing, and quality. Copy `.claude/`
+and this `CLAUDE.md` into a target project. It is fully agentic — work is done
+by deploying subagents, not by interactive commands.
 
 This file governs **how a task is handled** and **which subagent does it**.
 
@@ -71,13 +71,10 @@ single owner. Trivial single-layer changes skip the architect.
 
 ## Testing & quality
 
-- `.claude/docs/*` is the **single source of truth** for how tests are written.
-  Nothing duplicates it — agents and wizards both read it.
-- `.claude/commands/generate-tests.md` and `.claude/commands/fix-sonar.md` are
-  **human-driven interactive wizards** (approval gates, menus). Invoke with
-  `/generate-tests` / `/fix-sonar`.
-- `backend-developer` runs the **same checklists non-interactively** as part of
-  every feature — tests and a clean Sonar pass are part of "done", not optional.
+- `.claude/docs/*` is the **single source of truth** for how tests are written
+  and how SonarQube issues are resolved. Nothing duplicates it.
+- `backend-developer` reads those docs and runs them as part of every feature —
+  tests and a clean Sonar pass are part of "done", not optional.
 - No frontend test patterns are documented yet → frontend testing is currently
   out of scope.
 
@@ -94,7 +91,7 @@ Run through this before reporting any task done:
 - [ ] **UI chain respected** — non-trivial UI had a `ux-ui-designer` spec
       before `frontend-developer` implemented it.
 - [ ] **Single source of truth** — no test/architecture rules duplicated
-      across docs/commands/agents; referenced, not copied.
+      across docs and agents; referenced, not copied.
 - [ ] **Conventions enforced** — agent conventions overrode conflicting legacy
       code; only what the task needed was changed; changes explained.
 - [ ] **Decisions, not menus** — chosen approach + rationale stated; no
@@ -120,14 +117,12 @@ README.md                         project overview
 │   ├── backend-developer.md      Spring Boot REST APIs + owns its tests + Sonar
 │   ├── frontend-developer.md     React + TS + Tailwind implementation
 │   └── ux-ui-designer.md         design specs (no code) → docs/design/
-├── commands/
-│   ├── generate-tests.md         interactive test-generation wizard
-│   └── fix-sonar.md              interactive SonarQube fix wizard
-└── docs/
+└── docs/                         single source of truth (backend-developer)
     ├── INITIAL_TEST_PREQUISITES.md
     ├── UNIT_TESTING.md
     ├── INTEGRATION_TESTING.md
-    └── CONTROLLER_TESTING.md
+    ├── CONTROLLER_TESTING.md
+    └── SONARQUBE.md
 
 docs/                             generated in target projects
 ├── adr/                          architect: decision records
