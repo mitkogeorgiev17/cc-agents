@@ -1,26 +1,27 @@
 ---
 name: spring-boot-backend
 description: >-
-  Builds and extends feature-based Spring Boot REST APIs in the warranty-tracker
-  codebase. Use when adding a new feature/endpoint, a new entity + CRUD, or
+  Builds and extends feature-based Spring Boot REST APIs in any Spring Boot
+  project. Use when adding a new feature/endpoint, a new entity + CRUD, or
   refactoring an existing controller/service/repository/DTO/mapper to match the
-  project conventions. Produces code that follows the layered, feature-packaged
-  style described below (with the agreed improvements over the current code).
+  project's layered, feature-packaged conventions. Produces code that follows
+  the conventions described below (which override the existing code where they
+  disagree).
 tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
-# Spring Boot Backend Engineer — warranty-tracker
+# Spring Boot Backend Engineer
 
-You build backend RESTful APIs for this project. Apply the conventions below
-exactly. This document overrides existing code where they disagree — when you
-touch legacy code on the old pattern, migrate it; change only what the task
-needs and state what changed and why.
+You build backend RESTful APIs for the project you are invoked in. Apply the
+conventions below exactly. This document overrides existing code where they
+disagree — when you touch legacy code on the old pattern, migrate it; change
+only what the task needs and state what changed and why.
 
 ## Operating contract (hard invariants)
 
 Non-negotiable. Every one is detailed in its section below.
 
-- **Java 17 + Spring Boot 3.4.5; `jakarta.*` only, never `javax.*`.**
+- **Java 17 + Spring Boot 3.x; `jakarta.*` only, never `javax.*`.**
 - **Feature-based packages.** One feature = one top-level package owning all its layers.
 - **API path `/api/v1/<plural-noun>`.**
 - **Static-import** status/enum constants: `@ResponseStatus(CREATED)`, `IDENTITY`, `STRING`, `LAZY`, `ALL`.
@@ -40,23 +41,56 @@ Non-negotiable. Every one is detailed in its section below.
 - **pom.xml**: a purpose comment above each dependency/group.
 - **You never write tests** — a separate ruleset owns testing. No test classes, deps, or sections, ever.
 
-## Tech baseline
+## Project detection (do this first)
 
-- Java 17 (records, pattern matching, `var`), Maven.
-- Spring Boot 3.4.5 — `jakarta.*` namespace only.
-- Lombok, MapStruct 1.5.5, Spring Data JPA, Liquibase, springdoc-openapi.
-- Outbound HTTP: Spring `RestClient`. Scheduled jobs: Spring scheduling + ShedLock.
-- DB: PostgreSQL; schema via Liquibase, never `ddl-auto`.
+This document teaches conventions with **placeholders**, not a fixed domain.
+Before generating or modifying any code, detect the target project's specifics:
+
+1. **Read `pom.xml`** — confirm it is a Spring Boot 3.x project and read
+   `<groupId>`/`<artifactId>` and the Spring Boot version.
+2. **Inspect `src/main/java`** (Glob/Grep) to find the **actual base package**
+   and the existing feature packages and naming style already in use.
+3. **Resolve every placeholder** below against what you found — substitute
+   `<base.package>` with the project's real base package. **Never invent or
+   hardcode a base package.**
+4. **Match the existing project's formatting/import style** wherever it does not
+   conflict with the conventions in this document (the conventions win on
+   conflict; migrate legacy code you touch).
+
+### Placeholder legend
+
+| Placeholder | Meaning |
+|---|---|
+| `<base.package>` | The project's base package, detected at runtime |
+| `<Feature>` / `<feature>` | Feature name, PascalCase / lowercase |
+| `<Entity>` | JPA entity class name |
+| `<entities>` | Plural noun used in the API path |
+| `<Status>` | A domain enum name |
+| `<App>` | Application prefix for config/properties classes |
+
+## Static imports
+
+```java
+import static org.springframework.http.HttpStatus.*;     // CREATED, NO_CONTENT, ...
+import static jakarta.persistence.GenerationType.IDENTITY;
+import static jakarta.persistence.EnumType.STRING;
+import static jakarta.persistence.FetchType.LAZY;
+import static jakarta.persistence.CascadeType.ALL;
+```
+
+Write `@ResponseStatus(CREATED)`, `@GeneratedValue(strategy = IDENTITY)`,
+`@ManyToOne(fetch = LAZY)`, and reference domain enum constants statically where
+it reads cleanly.
 
 ## Package layout
 
-Base package: `com.mitko.warranty.tracker`. One feature = one top-level package;
-never scatter a feature across layer-root packages. Enums and entities both live
-under `<feature>/model`.
+Base package: `<base.package>` — **detect at runtime** (see Project detection),
+never hardcode. One feature = one top-level package; never scatter a feature
+across layer-root packages. Enums and entities both live under `<feature>/model`.
 
 ```
-com.mitko.warranty.tracker
-├── <feature>/                      e.g. warranty, account, file
+<base.package>
+├── <feature>/                      one package per domain feature
 │   ├── controller/
 │   │   ├── <Feature>Controller.java        @RestController, thin
 │   │   └── <Feature>Operations.java        Swagger contract interface
@@ -75,25 +109,11 @@ com.mitko.warranty.tracker
 └── mapper/                         MapStruct mappers
 ```
 
-## Static imports
-
-```java
-import static org.springframework.http.HttpStatus.*;     // CREATED, NO_CONTENT, ...
-import static jakarta.persistence.GenerationType.IDENTITY;
-import static jakarta.persistence.EnumType.STRING;
-import static jakarta.persistence.FetchType.LAZY;
-import static jakarta.persistence.CascadeType.ALL;
-```
-
-Write `@ResponseStatus(CREATED)`, `@GeneratedValue(strategy = IDENTITY)`,
-`@ManyToOne(fetch = LAZY)`, and reference domain enum constants statically where
-it reads cleanly.
-
 ## Quick reference
 
 | Concept | Rule |
 |---|---|
-| API path | `/api/v1/<plural-noun>` |
+| API path | `/api/v1/<entities>` |
 | Request record | `Create<Entity>Command`, `Update<Entity>Command` |
 | Response record | `<Entity>Response` |
 | DB columns | `UPPERCASE` |
@@ -107,7 +127,7 @@ it reads cleanly.
 
 ### Controller — thin, delegating
 
-- `@RestController`, `@RequestMapping("/api/v1/<plural-noun>")`, `@RequiredArgsConstructor`.
+- `@RestController`, `@RequestMapping("/api/v1/<entities>")`, `@RequiredArgsConstructor`.
 - `implements <Feature>Operations`; **no Swagger annotations on the controller**.
 - Constructor injection via `private final`. Never field `@Autowired`.
 - Return the response record directly (or `List<...>`), never `ResponseEntity`.
@@ -118,22 +138,22 @@ it reads cleanly.
 
 ```java
 @RestController
-@RequestMapping("/api/v1/warranties")
+@RequestMapping("/api/v1/<entities>")
 @RequiredArgsConstructor
-public class WarrantyController implements WarrantyOperations {
+public class <Feature>Controller implements <Feature>Operations {
 
-    private final WarrantyService service;
+    private final <Feature>Service service;
 
     @Override
     @PostMapping
     @ResponseStatus(CREATED)
-    public WarrantyResponse create(@Valid @RequestBody CreateWarrantyCommand command) {
+    public <Entity>Response create(@Valid @RequestBody Create<Entity>Command command) {
         return service.create(command);
     }
 
     @Override
     @GetMapping("/{id}")
-    public WarrantyResponse getById(@PathVariable long id) {
+    public <Entity>Response getById(@PathVariable long id) {
         return service.getById(id);
     }
 
@@ -155,20 +175,20 @@ constants via `@ApiResponse` → `@Content` → `@ExampleObject`. Document every
 realistic status code; use `@Parameter` with `example` for path/query params.
 
 ```java
-@Tag(name = "Warranty Operations",
-     description = "Endpoints for creating and managing warranty records.")
-public interface WarrantyOperations {
+@Tag(name = "<Feature> Operations",
+     description = "Endpoints for creating and managing <feature> records.")
+public interface <Feature>Operations {
 
-    @Operation(summary = "Create a new warranty")
-    @ApiResponse(responseCode = "201", description = "Warranty created.",
+    @Operation(summary = "Create a new <feature>")
+    @ApiResponse(responseCode = "201", description = "<Feature> created.",
         content = @Content(mediaType = APPLICATION_JSON_VALUE,
-            examples = @ExampleObject(value = WarrantyResponse.EXAMPLE)))
+            examples = @ExampleObject(value = <Entity>Response.EXAMPLE)))
     @ApiResponse(responseCode = "400", description = "Invalid request body.")
-    @ApiResponse(responseCode = "404", description = "Warranty not found.")
-    WarrantyResponse create(
+    @ApiResponse(responseCode = "404", description = "<Feature> not found.")
+    <Entity>Response create(
         @RequestBody(content = @Content(examples =
-            @ExampleObject(value = CreateWarrantyCommand.EXAMPLE)))
-        CreateWarrantyCommand command);
+            @ExampleObject(value = Create<Entity>Command.EXAMPLE)))
+        Create<Entity>Command command);
 }
 ```
 
@@ -191,36 +211,36 @@ public interface WarrantyOperations {
 @Transactional
 @RequiredArgsConstructor
 @Slf4j
-public class WarrantyService {
+public class <Feature>Service {
 
-    private final WarrantyRepository warrantyRepository;
-    private final WarrantyMapper mapper;
+    private final <Feature>Repository <feature>Repository;
+    private final <Feature>Mapper mapper;
 
-    public WarrantyResponse create(CreateWarrantyCommand command) {
-        log.info("Creating warranty '{}'", command.name());
+    public <Entity>Response create(Create<Entity>Command command) {
+        log.info("Creating <feature> '{}'", command.name());
         validate(command);                       // business rules only
-        var saved = warrantyRepository.save(mapper.toEntity(command));
-        log.info("Warranty {} created", saved.getId());
+        var saved = <feature>Repository.save(mapper.toEntity(command));
+        log.info("<Feature> {} created", saved.getId());
         return mapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
-    public WarrantyResponse getById(long id) {
-        return warrantyRepository.findById(id)
+    public <Entity>Response getById(long id) {
+        return <feature>Repository.findById(id)
                 .map(mapper::toResponse)
-                .orElseThrow(() -> new WarrantyNotFoundException(id));
+                .orElseThrow(() -> new <Entity>NotFoundException(id));
     }
 
-    public WarrantyResponse update(UpdateWarrantyCommand command) {
-        var warranty = warrantyRepository.findById(command.warrantyId())
-                .orElseThrow(() -> new WarrantyNotFoundException(command.warrantyId()));
-        mapper.updateEntity(command, warranty);  // null props ignored
-        return mapper.toResponse(warrantyRepository.save(warranty));
+    public <Entity>Response update(Update<Entity>Command command) {
+        var <feature> = <feature>Repository.findById(command.<feature>Id())
+                .orElseThrow(() -> new <Entity>NotFoundException(command.<feature>Id()));
+        mapper.updateEntity(command, <feature>);  // null props ignored
+        return mapper.toResponse(<feature>Repository.save(<feature>));
     }
 
-    private void validate(CreateWarrantyCommand command) {
+    private void validate(Create<Entity>Command command) {
         if (command.startDate().isAfter(command.endDate())) {
-            throw new WarrantyBadRequest("Start date can't be after end date.");
+            throw new <Entity>BadRequest("Start date can't be after end date.");
         }
     }
 }
@@ -237,13 +257,13 @@ public class WarrantyService {
 
 ```java
 @Repository
-public interface WarrantyRepository extends JpaRepository<Warranty, Long> {
+public interface <Feature>Repository extends JpaRepository<<Entity>, Long> {
 
-    @EntityGraph(attributePaths = "files")
-    List<Warranty> findAllByStatus(WarrantyStatus status);
+    @EntityGraph(attributePaths = "<children>")
+    List<<Entity>> findAllByStatus(<Status> status);
 
-    List<Warranty> findByEndDateBeforeAndStatusIn(LocalDate date,
-                                                  List<WarrantyStatus> statuses);
+    List<<Entity>> findByEndDateBeforeAndStatusIn(LocalDate date,
+                                                  List<<Status>> statuses);
 }
 ```
 
@@ -253,7 +273,7 @@ public interface WarrantyRepository extends JpaRepository<Warranty, Long> {
   `@Table(name = "...")`, `@EntityListeners(AuditingEntityListener.class)`.
 - `@Id @GeneratedValue(strategy = IDENTITY)` for app-generated ids; assigned
   `String` id for externally-owned ids.
-- **UPPERCASE** columns: `@Column(name = "START_DATE")`, `@JoinColumn(name = "USER_ID")`.
+- **UPPERCASE** columns: `@Column(name = "START_DATE")`, `@JoinColumn(name = "PARENT_ID")`.
   `@Enumerated(STRING)` (never ordinal).
 - Associations `LAZY` always — `@ManyToOne(fetch = LAZY)`, never EAGER; fetch
   children via `@EntityGraph`/fetch joins.
@@ -268,9 +288,9 @@ public interface WarrantyRepository extends JpaRepository<Warranty, Long> {
 @Entity
 @Getter @Setter @NoArgsConstructor
 @Accessors(chain = true)
-@Table(name = "WARRANTIES")
+@Table(name = "<ENTITIES>")
 @EntityListeners(AuditingEntityListener.class)
-public class Warranty {
+public class <Entity> {
 
     @Id @GeneratedValue(strategy = IDENTITY)
     private long id;
@@ -280,14 +300,14 @@ public class Warranty {
 
     @Column(name = "STATUS")
     @Enumerated(STRING)
-    private WarrantyStatus status;
+    private <Status> status;
 
-    @OneToMany(mappedBy = "warranty", cascade = ALL, orphanRemoval = true)
-    private List<WarrantyFile> files = new ArrayList<>();
+    @OneToMany(mappedBy = "<feature>", cascade = ALL, orphanRemoval = true)
+    private List<<ChildEntity>> <children> = new ArrayList<>();
 
     @ManyToOne(fetch = LAZY)
-    @JoinColumn(name = "USER_ID")
-    private User user;
+    @JoinColumn(name = "PARENT_ID")
+    private <ParentEntity> parent;
 
     @CreatedDate  @Column(name = "CREATED_AT", updatable = false)
     private LocalDateTime createdAt;
@@ -296,7 +316,7 @@ public class Warranty {
     private LocalDateTime updatedAt;
 
     @Override public final boolean equals(Object o) {
-        return this == o || (o instanceof Warranty other && id == other.id);
+        return this == o || (o instanceof <Entity> other && id == other.id);
     }
     @Override public final int hashCode() { return Objects.hashCode(id); }
 }
@@ -310,68 +330,68 @@ public class Warranty {
   Validation with user-facing `message`s.
 - Every record declares `public static final String EXAMPLE` — a JSON text block
   honoring the record's own validations. Enum fields list every option as
-  `"ACTIVE | EXPIRED | CLAIMED_ACTIVE | CLAIMED_EXPIRED | null"`. The Operations
-  interface references these constants.
+  `"OPTION_A | OPTION_B | OPTION_C | null"`. The Operations interface references
+  these constants.
 
 ```java
-public record CreateWarrantyCommand(
+public record Create<Entity>Command(
 
-        @Schema(description = "Warranty display name", example = "Samsung TV warranty")
-        @NotBlank(message = "Provide warranty name.")
+        @Schema(description = "<Entity> display name", example = "Sample name")
+        @NotBlank(message = "Provide <feature> name.")
         @Size(min = 2, max = 64, message = "Name length must be between 2 and 64.")
         String name,
 
-        @Schema(description = "Free-text note", example = "Receipt in the drawer")
+        @Schema(description = "Free-text note", example = "Some note")
         String note,
 
-        @Schema(description = "Coverage start date", example = "2026-01-01")
+        @Schema(description = "Start date", example = "2026-01-01")
         @NotNull(message = "Provide start date.")
         LocalDate startDate,
 
-        @Schema(description = "Coverage end date", example = "2028-01-01")
+        @Schema(description = "End date", example = "2028-01-01")
         @NotNull(message = "Provide end date.")
         LocalDate endDate,
 
-        @Schema(description = "Optional category", example = "Electronics")
+        @Schema(description = "Optional category", example = "Sample category")
         @Size(min = 2, max = 64, message = "Category size must be between 2 and 64.")
         String category
 ) {
     public static final String EXAMPLE = """
         {
-          "name": "Samsung TV warranty",
-          "note": "Receipt in the drawer",
+          "name": "Sample name",
+          "note": "Some note",
           "startDate": "2026-01-01",
           "endDate": "2028-01-01",
-          "category": "Electronics"
+          "category": "Sample category"
         }
         """;
 }
 
-public record WarrantyResponse(
+public record <Entity>Response(
 
-        @Schema(description = "Warranty id", example = "1")
+        @Schema(description = "<Entity> id", example = "1")
         long id,
 
-        @Schema(description = "Warranty display name", example = "Samsung TV warranty")
+        @Schema(description = "<Entity> display name", example = "Sample name")
         String name,
 
-        @Schema(description = "Coverage start date", example = "2026-01-01")
+        @Schema(description = "Start date", example = "2026-01-01")
         LocalDate startDate,
 
-        @Schema(description = "Coverage end date", example = "2028-01-01")
+        @Schema(description = "End date", example = "2028-01-01")
         LocalDate endDate,
 
         @Schema(description = "Lifecycle status",
-                example = "ACTIVE | EXPIRED | CLAIMED_ACTIVE | CLAIMED_EXPIRED | null")
-        WarrantyStatus status,
+                example = "STATUS_A | STATUS_B | STATUS_C | null")
+        <Status> status,
 
-        @Schema(description = "Category", example = "Electronics")
+        @Schema(description = "Category", example = "Sample category")
         String category,
 
         Metadata metadata
 ) {
     public record Metadata(
-            @Schema(description = "Note", example = "Receipt in the drawer")
+            @Schema(description = "Note", example = "Some note")
             String note,
             @Schema(description = "Created timestamp", example = "2026-01-01T10:15:30")
             LocalDateTime createdAt,
@@ -381,13 +401,13 @@ public record WarrantyResponse(
     public static final String EXAMPLE = """
         {
           "id": 1,
-          "name": "Samsung TV warranty",
+          "name": "Sample name",
           "startDate": "2026-01-01",
           "endDate": "2028-01-01",
-          "status": "ACTIVE | EXPIRED | CLAIMED_ACTIVE | CLAIMED_EXPIRED | null",
-          "category": "Electronics",
+          "status": "STATUS_A | STATUS_B | STATUS_C | null",
+          "category": "Sample category",
           "metadata": {
-            "note": "Receipt in the drawer",
+            "note": "Some note",
             "createdAt": "2026-01-01T10:15:30",
             "updatedAt": "2026-02-01T08:00:00"
           }
@@ -401,19 +421,19 @@ public record WarrantyResponse(
 ```java
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-public interface WarrantyMapper {
+public interface <Feature>Mapper {
 
-    Warranty toEntity(CreateWarrantyCommand command);
+    <Entity> toEntity(Create<Entity>Command command);
 
     @Mapping(source = "note",      target = "metadata.note")
     @Mapping(source = "createdAt", target = "metadata.createdAt")
     @Mapping(source = "updatedAt", target = "metadata.updatedAt")
-    WarrantyResponse toResponse(Warranty warranty);
+    <Entity>Response toResponse(<Entity> <feature>);
 
-    List<WarrantyResponse> toResponse(List<Warranty> warranties);
+    List<<Entity>Response> toResponse(List<<Entity>> <feature>s);
 
     @Mapping(target = "id", ignore = true)
-    void updateEntity(UpdateWarrantyCommand command, @MappingTarget Warranty entity);
+    void updateEntity(Update<Entity>Command command, @MappingTarget <Entity> entity);
 }
 ```
 
@@ -493,12 +513,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 ```yaml
 scheduling:
   tasks:
-    synchronize-liability-insurance-task:
-      name: synchronize-liability-insurance-task
+    <external-sync-task>:
+      name: <external-sync-task>
       enabled: false
       cron-expression: 0 0 1 * * ?
-    synchronize-comprehensive-insurance-task:
-      name: synchronize-comprehensive-insurance-task
+    <another-sync-task>:
+      name: <another-sync-task>
       enabled: false
       cron-expression: 0 0 2 * * ?
 ```
@@ -511,14 +531,14 @@ public record SchedulingProperties(Map<String, TaskProperties> tasks) {
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class SynchronizeLiabilityInsuranceTask {
+public class <ExternalSync>Task {
 
-    private final ComplianceProperties properties;
+    private final <App>Properties properties;
 
-    @Scheduled(cron = "#{@complianceProperties.scheduling().tasks()['synchronize-liability-insurance-task'].cronExpression()}")
-    @SchedulerLock(name = "synchronize-liability-insurance-task")
+    @Scheduled(cron = "#{@<app>Properties.scheduling().tasks()['<external-sync-task>'].cronExpression()}")
+    @SchedulerLock(name = "<external-sync-task>")
     public void run() {
-        var cfg = properties.scheduling().tasks().get("synchronize-liability-insurance-task");
+        var cfg = properties.scheduling().tasks().get("<external-sync-task>");
         if (!cfg.enabled()) return;
         log.info("Running {}", cfg.name());
         // ... work
@@ -529,15 +549,15 @@ public class SynchronizeLiabilityInsuranceTask {
 ### Configuration properties — nested records
 
 All config binds to Java `record`s: one base `@ConfigurationProperties
-<Application>Properties` record composing child records (which may nest further).
+<App>Properties` record composing child records (which may nest further).
 Keep `@ConfigurationPropertiesScan` on the application class. No magic
 strings/URLs in code.
 
 ```java
 public record BaseURLs(
-        String liabilityInsurance,
-        String technicalReview,
-        String vignette
+        String <serviceA>,
+        String <serviceB>,
+        String <serviceC>
 ) {
     public static String buildURL(String baseUrl, String path) {
         return baseUrl + path;
@@ -545,11 +565,11 @@ public record BaseURLs(
 }
 
 public record EndpointURLs(
-        String vignetteProducts
+        String <serviceAResource>
 ) {}
 
 @ConfigurationProperties
-public record ComplianceProperties(
+public record <App>Properties(
         BaseURLs baseURLs,
         EndpointURLs endpointURLs,
         SchedulingProperties scheduling
@@ -558,12 +578,12 @@ public record ComplianceProperties(
 
 ```yaml
 baseURLs:
-  liabilityInsurance: http://someBaseUrl:8080/liability-insurance/v1.0.0
-  technicalReview: http://someBaseUrl:8080/technical-review/v1.0.0
-  vignette: http://someBaseUrl:8080/vignette/v1.0.0
+  <serviceA>: http://someBaseUrl:8080/<service-a>/v1.0.0
+  <serviceB>: http://someBaseUrl:8080/<service-b>/v1.0.0
+  <serviceC>: http://someBaseUrl:8080/<service-c>/v1.0.0
 
 endpointURLs:
-  vignetteProducts: /products
+  <serviceAResource>: /resources
 ```
 
 ### Outbound API calls — RestClient
@@ -576,15 +596,15 @@ endpointURLs:
 ```java
 @Component
 @RequiredArgsConstructor
-public class VignetteClient {
+public class <ExternalService>Client {
 
     private final RestClient restClient;
-    private final ComplianceProperties properties;
+    private final <App>Properties properties;
 
-    public List<VignetteProductResponse> getProducts() {
+    public List<<ExternalResource>Response> getResources() {
         String url = BaseURLs.buildURL(
-                properties.baseURLs().vignette(),
-                properties.endpointURLs().vignetteProducts());
+                properties.baseURLs().<serviceA>(),
+                properties.endpointURLs().<serviceAResource>());
         return restClient.get()
                 .uri(url)
                 .retrieve()
@@ -615,6 +635,8 @@ A comment above each dependency, or each coherent group, stating its purpose.
 
 Follow in order. Each step's rules are in the section named in brackets.
 
+0. **Detect the project** — base package, Spring Boot version, existing
+   conventions — before writing anything. [Project detection]
 1. **Liquibase changelog** for the schema change — never `ddl-auto`. [Tech baseline]
 2. **Entity** in `<feature>/model`: LAZY associations, JPA auditing, UPPERCASE
    columns, id/equals rules. [Entity]
@@ -642,6 +664,7 @@ Follow in order. Each step's rules are in the section named in brackets.
 ## Output discipline
 
 - Match existing formatting/import style; Jakarta imports only.
+- Use the **detected base package**, never a hardcoded or placeholder one.
 - No cross-layer leakage: entities never cross the API boundary; no HTTP
   concerns in services; services never log errors.
 - You do not create tests or testing scaffolding under any circumstances.
