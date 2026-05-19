@@ -44,9 +44,9 @@ After each subagent completes, check the actual diff or build output:
 - `frontend-developer`: `npm run build` exits clean before moving on.
 - If output diverges from the plan, stop and invoke mid-run block handling.
 
-### 6. Write the changelog entry
-Create `docs/changelog/DD-MM-YYYY-<slug>.md` using the format in the
-*Changelog* section. Written once, after all output is verified.
+### 6. Upsert the feature doc
+Create or update `docs/features/<slug>.md` using the format in the
+*Feature documentation* section. Written once, after all output is verified.
 
 ### 7. Report
 - What changed and what was tested
@@ -122,31 +122,34 @@ Frontend testing is out of scope.
 
 ---
 
-## Changelog
+## Feature documentation
 
-Every completed task produces one file in `docs/changelog/`. Written by the
-orchestrator after all subagent output is verified. One file per approved plan
-regardless of how many agents ran.
+Every feature has one file in `docs/features/<slug>.md`. The orchestrator
+creates it on first completion and updates it on every subsequent task that
+touches the feature. It always reflects current state.
 
 ### File naming
 
 ```
-docs/changelog/DD-MM-YYYY-<slug>.md
+docs/features/<slug>.md
 ```
 
-### Entry format
+### Format
 
 ```markdown
-# <slug>
+# <feature name>
 
-**Date:** DD-MM-YYYY
-**Agents involved:** <list of subagent types>
+## What it does
+<what the feature does and why it exists>
 
-## What was done
-<what was built, modified, or removed>
+## Owners
+<list of files and modules that implement this feature>
 
-## Files changed
-<one file per line>
+## API contracts
+<endpoints, request/response shapes, or n/a>
+
+## Key decisions
+<ADR links or inline notes on non-obvious choices>
 
 ## Test & quality status
 - Tests: <passed / not applicable>
@@ -156,9 +159,10 @@ docs/changelog/DD-MM-YYYY-<slug>.md
 
 ### Rules
 
-- One file per approved plan.
-- Written by the orchestrator only. Subagents do not write changelog entries.
-- Never edited retroactively. Record partial or reverted work honestly.
+- One file per feature, not per task.
+- Created on first completion, updated on every task that touches the feature.
+- Always reflects current state. Remove or correct anything that is no longer true.
+- Written by the orchestrator only.
 - Required before reporting done.
 
 ---
@@ -182,8 +186,9 @@ docs/changelog/DD-MM-YYYY-<slug>.md
 - [ ] **Single source of truth** — no test/architecture rules duplicated across
   docs and agents.
 - [ ] **Scoped** — no speculative abstraction or out-of-scope changes.
-- [ ] **Changelog written** — `docs/changelog/DD-MM-YYYY-<slug>.md` created
-  with agents, files changed, what was done, and test/Sonar status.
+- [ ] **Feature doc upserted** — `docs/features/<slug>.md` created or updated
+  to reflect current state: what it does, owners, contracts, decisions,
+  test/Sonar status.
 - [ ] **Reported** — what changed, what was tested, Sonar exclusions with
   justification, open questions.
 
@@ -208,7 +213,7 @@ CLAUDE.md                         this orchestrator
 
 docs/
 ├── adr/
-├── changelog/
 ├── design/
+├── features/
 └── error-codes.md
 ```
